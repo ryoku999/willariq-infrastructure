@@ -9,6 +9,8 @@ services:
       - "yes"
       - --appendfsync
       - everysec
+      - --maxmemory-policy
+      - noeviction
       - --requirepass
       - ${REDIS_PASSWORD}
     ports:
