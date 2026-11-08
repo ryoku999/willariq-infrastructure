@@ -1,24 +1,19 @@
 services:
   minio:
-    image: minio/minio:latest
+    image: dappros/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: willariq-minio-server
     restart: unless-stopped
     ports:
-      - "${MINIO_PORT:-9000}:9000" 
-      - "9001:9001"                
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_REGION_NAME: ${MINIO_REGION:-us-east-1}
-      MINIO_BROWSER_REDIRECT_URL: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_PUBLIC_CONSOLE_URL:-http://localhost:9001}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
 volumes:
   minio_data:
