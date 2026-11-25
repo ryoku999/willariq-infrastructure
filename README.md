@@ -2,13 +2,19 @@
 
 Este repositorio reúne los servicios que utiliza la API de Willariq en desarrollo.
 
-| Servicio | Carpeta | Función |
-| --- | --- | --- |
-| PostgreSQL 18 con pgvector | `postgres/` | Datos de la aplicación y vectores de conocimiento |
-| Redis 7 | `redis/` | Colas y trabajos de BullMQ |
-| RustFS | `rustfs/` | Almacenamiento privado compatible con S3 para evidencias y documentos Markdown |
+| Servicio                   | Carpeta     | Función                                                                        |
+| -------------------------- | ----------- | ------------------------------------------------------------------------------ |
+| PostgreSQL 18 con pgvector | `postgres/` | Datos de la aplicación y vectores de conocimiento                              |
+| Redis 7                    | `redis/`    | Colas y trabajos de BullMQ                                                     |
+| RustFS                     | `rustfs/`   | Almacenamiento privado compatible con S3 para evidencias y documentos Markdown |
 
 Cada servicio tiene su propio Compose, archivo de variables y volumen persistente. Los comandos siguientes se ejecutan desde la raíz de este repositorio. Crea el archivo `.env` de cada servicio a partir de su ejemplo si aún no existe y configura las credenciales antes de arrancarlo.
+
+Crea la red Docker compartida una vez en cada host antes de iniciar los servicios. Si ya existe, reutilízala.
+
+```bash
+docker network create willariq-backend
+```
 
 ## 1. PostgreSQL
 
@@ -57,19 +63,15 @@ Con los puertos predeterminados, el endpoint S3 es `http://127.0.0.1:9000` y la 
 2. Crea el bucket privado `incident-evidence` para las fotos de incidencias.
 3. Si vas a usar conocimiento y chatbot, crea otro bucket privado llamado `municipal-knowledge` para los Markdown. Usa en la API los nombres exactos de los buckets que creaste.
 
-La API usa RustFS mediante S3. Su configuración conserva el prefijo histórico `MINIO_*`:
+La API usa RustFS mediante el SDK de AWS para S3.
 
-| Variable de la API | Valor para RustFS local |
-| --- | --- |
-| `MINIO_ENABLED` | `true` |
-| `MINIO_ENDPOINT` | `127.0.0.1` |
-| `MINIO_PORT` | El puerto publicado en `RUSTFS_PORT`, por defecto `9000` |
-| `MINIO_USE_SSL` | `false` para el endpoint HTTP local |
-| `MINIO_ACCESS_KEY` | La misma clave de acceso que usa RustFS |
-| `MINIO_SECRET_KEY` | La misma clave secreta que usa RustFS |
-| `MINIO_REGION` | La región de RustFS, por defecto `us-east-1` |
-| `MINIO_EVIDENCE_BUCKET` | `incident-evidence` |
-| `MINIO_KNOWLEDGE_BUCKET` | `municipal-knowledge` cuando habilites conocimiento |
+| Configuración                | API fuera de Docker               | API dentro de Docker          |
+| ---------------------------- | --------------------------------- | ----------------------------- |
+| PostgreSQL en `DATABASE_URL` | `127.0.0.1` y el puerto publicado | `willariq-postgres:5432`      |
+| Redis                        | `127.0.0.1` y el puerto publicado | `willariq-redis:6379`         |
+| `RUSTFS_ENDPOINT`            | `http://127.0.0.1:9000`           | `http://willariq-rustfs:9000` |
+
+Configura `RUSTFS_ENABLED=true`, `RUSTFS_ACCESS_KEY`, `RUSTFS_SECRET_KEY`, `RUSTFS_REGION` y `RUSTFS_EVIDENCE_BUCKET`. Agrega `RUSTFS_KNOWLEDGE_BUCKET` si habilitas conocimiento. Si eliges otro nombre para la red, define `WILLARIQ_BACKEND_NETWORK` con el mismo valor en los Compose que se conectan entre sí.
 
 La app móvil y el panel acceden a los archivos a través de la API. Las credenciales y el endpoint S3 se configuran en el servidor de la API.
 
